@@ -1,0 +1,100 @@
+/* Define CSS variables for easy maintenance and theming */
+:root {
+  --background-color: #333;
+  --text-color: #fff;
+  --input-bg-color: #222;
+  --input-focus-border-color: #555;
+  --terminal-width: 80%;
+  --terminal-max-width: 800px;
+  --terminal-border-radius: 4px;
+  --terminal-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --font-stack: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --hero-margin: 20px 0;
+  --main-gap: 20px;
+  --input-padding: 10px;
+  --footer-margin-top: 20px;
+}
+
+/* General styles */
+body {
+  font-family: var(--font-stack);
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Main layout */
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--main-gap);
+  padding: var(--hero-margin);
+}
+
+/* Hero section */
+.hero {
+  text-align: center;
+  margin: var(--hero-margin);
+}
+
+#terminal {
+  display: flex;  
+  align-items: center; /* Center-align children vertically */
+  gap: 10px; /* Space between logo and command input */
+  background-color: var(--background-color);
+  color: var(--text-color);
+  padding: var(--input-padding);
+  width: var(--terminal-width);
+  max-width: var(--terminal-max-width);
+  border-radius: var(--terminal-border-radius);
+  box-shadow: var(--terminal-shadow);
+}
+
+/* Logo styling */
+#logo {
+  width: 30px; /* A reasonable size for the logo */
+  height: auto; /* Maintain aspect ratio */
+}
+
+#commandInput {
+  flex-grow: 1; /* Command input will take the remaining space */
+  padding: var(--input-padding);
+  background: var(--input-bg-color);
+  border: 1px solid transparent; /* Default border to maintain layout consistency */
+  color: var(--text-color);
+  font-family: var(--font-stack);
+}
+
+/* Focus state for input */
+#commandInput:focus {
+  border-color: var(--input-focus-border-color);
+}
+
+/* Footer styling */
+footer {
+  text-align: center;
+  margin-top: var(--footer-margin-top);
+}
+
+/* Responsive design adjustments */
+@media (max-width: 768px) {
+  #terminal {
+    width: 95%;
+    max-width: none;
+  }
+
+  main {
+    gap: 15px;
+  }
+
+  .hero {
+    margin: 15px 0;
+  }
+
+  footer {
+    margin-top: 15px;
+  }
+}
