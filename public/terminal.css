@@ -43,7 +43,7 @@ main {
 #terminal {
   display: flex;  
   align-items: center; /* Center-align children vertically */
-  gap: 10px; /* Space between logo and command input */
+  gap: 5px; /* Space between logo and command input */
   background-color: var(--background-color);
   color: var(--text-color);
   padding: var(--input-padding);
@@ -55,7 +55,7 @@ main {
 
 /* Logo styling */
 #logo {
-  width: 30px; /* A reasonable size for the logo */
+  width: 40px; /* A reasonable size for the logo */
   height: auto; /* Maintain aspect ratio */
 }
 
