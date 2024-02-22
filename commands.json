@@ -1,0 +1,38 @@
+[
+    {
+        "name": "ls",
+        "description": "List projects in the given directory or file. Return bash command for ls for given directory. Follow the standard unix ls spec.\nls [OPTION]... [FILE]...\n",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to primary argument in ls spec."
+                },
+                "options": {
+                    "type": "object",
+                    "description": "Any user provided details that are mappable to ls spec."
+                }
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "cat",
+        "description": "Standard unix cat command on file. Return bash command for cat on given file. Follow the standard unix cat spec.\ncat [OPTION]... [FILE]...\n",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to primary argument in cat spec."
+                },
+                "options": {
+                    "type": "object",
+                    "description": "Any user provided details that are mappable to cat spec."
+                }
+            },
+            "required": ["path"]
+        }
+    }
+]
