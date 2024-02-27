@@ -1,38 +1,38 @@
 [
     {
         "name": "ls",
-        "description": "List projects in the given directory or file. Return bash command for ls for given directory. Follow the standard unix ls spec.\nls [OPTION]... [FILE]...\n",
+        "description": "Function call mimicking UNIX ls. Extract directory path from user query. Don't ever modify the name of this function.",
         "parameters": {
             "type": "object",
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to primary argument in ls spec."
+                    "description": "Directory path. On function call, prepend ll/ to this identified path. Every final file path must begin with ll/"
                 },
-                "options": {
-                    "type": "object",
-                    "description": "Any user provided details that are mappable to ls spec."
+                "content_type": {
+                    "type": "string",
+                    "enum": ["application/text"]
                 }
             },
-            "required": ["path"]
+            "required": ["path", "content_type"]
         }
     },
     {
         "name": "cat",
-        "description": "Standard unix cat command on file. Return bash command for cat on given file. Follow the standard unix cat spec.\ncat [OPTION]... [FILE]...\n",
+        "description": "Function call mimicking UNIX cat. Extract file path from user query. User can use terms like 'show', 'display', etc. to trigger the cat command. Don't every modify the name of this function.",
         "parameters": {
             "type": "object",
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to primary argument in cat spec."
+                    "description": "File path. On function call, prepend ll/ to this identified path. Every final file path must begin with ll/"
                 },
-                "options": {
-                    "type": "object",
-                    "description": "Any user provided details that are mappable to cat spec."
+                "content_type": {
+                    "type": "string",
+                    "enum": ["application/html"]
                 }
             },
-            "required": ["path"]
+            "required": ["path", "content_type"]
         }
     }
 ]

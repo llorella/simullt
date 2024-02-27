@@ -9,8 +9,8 @@
   --terminal-border-radius: 4px;
   --terminal-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   --font-stack: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --hero-margin: 20px 0;
-  --main-gap: 20px;
+  --hero-margin: 10px 0;
+  --main-gap: 10px;
   --input-padding: 10px;
   --footer-margin-top: 20px;
 }
@@ -34,11 +34,19 @@ main {
   padding: var(--hero-margin);
 }
 
+#llt_design {
+  display: block; /* Makes sure it's a block element for margin auto to work */
+  margin: 0 auto; /* Centers the image horizontally */
+  max-height: 100%; /* Ensures the image is responsive and doesn't overflow its container */
+  width: auto;
+}
+
 /* Hero section */
 .hero {
   text-align: center;
   margin: var(--hero-margin);
 }
+
 
 #terminal {
   display: flex;  

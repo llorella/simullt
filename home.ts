@@ -81,8 +81,8 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       }
   
       const result = await executeCommand(command);
-      return new Response(result, {
-        headers: { 'Content-Type': 'application/text' },
+      return new Response(await result.text(), {
+        headers: { 'Content-Type': result.headers['Content-Type']},
       });
     } catch (e) {
       console.error(`Error executing command:`, e.message);
