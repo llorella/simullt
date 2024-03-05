@@ -12,22 +12,15 @@ interface CompletionResponse {
     content: string;
 }
 
-interface Command {
-    content: string;
-    content_type: string;
-}
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 async function getCompletions(command: string, functions: any): Promise<CompletionResponse> {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const completion = await openai.chat.completions.create({
         messages: [
-            { role: "system", content: "Generate a bash command for the user message that follows this one. Only use ls and cat for now." },
             { role: "user", content: command }
         ],
         functions: functions,
-        model: "gpt-3.5-turbo",
-        temperature: 0.9
+        model: "gpt-4",
+        temperature: 0.7
     });
 
     return completion.choices[0].message as CompletionResponse;

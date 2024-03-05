@@ -11,7 +11,7 @@
                 },
                 "content_type": {
                     "type": "string",
-                    "enum": ["application/text"]
+                    "enum": ["text/text"]
                 }
             },
             "required": ["path", "content_type"]
@@ -25,11 +25,11 @@
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "File path. On function call, prepend ll/ to this identified path. Every final file path must begin with ll/"
+                    "description": "File path. Locate the file and join it to ll/ so that every path parameter is prepended with ll."
                 },
                 "content_type": {
                     "type": "string",
-                    "enum": ["application/html"]
+                    "enum": ["text/html"]
                 }
             },
             "required": ["path", "content_type"]

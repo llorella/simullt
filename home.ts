@@ -81,9 +81,10 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       }
   
       const result = await executeCommand(command);
-      return new Response(await result.text(), {
+      /* return new Response(await result.text(), {
         headers: { 'Content-Type': result.headers['Content-Type']},
-      });
+      }); */
+      return new Response(await result.text(), { status: 200, headers: {'Content-Type': result.headers['Content-Type']} })
     } catch (e) {
       console.error(`Error executing command:`, e.message);
       return new Response("Internal Server Error", { status: 500 });

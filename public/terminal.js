@@ -18,20 +18,29 @@ document.addEventListener('DOMContentLoaded', function() {
           });
   
           if (response.ok) {
+            const contentType = response.headers.get('Content-Type');
             const data = await response.text();
-            const files = data.split("\n");
-            console.log(files)
-            commandOutput.innerHTML = ''; 
-            const list = document.createElement('ul');
-            files.forEach(file => {
-              const item = document.createElement('li');
-              const link = document.createElement('a');
-              link.href = `${file}`; // projects is magic value change later
-              link.textContent = file;
-              item.appendChild(link);
-              list.appendChild(item);
-            });
-            commandOutput.appendChild(list);
+            commandOutput.innerHTML = ''; // Clear the previous output
+  
+            if (contentType == "text/html") {
+              // Output is HTML, insert it directly
+              console.log(contentType)
+              commandOutput.innerHTML = data;
+            } else {
+              // Output is plain text, handle line by line
+              const files = data.split("\n");
+              console.log(files);
+              
+              const list = document.createElement('ul');
+              files.forEach(file => {
+                if (file.trim() !== '') {
+                  const item = document.createElement('li');
+                  item.textContent = file; // Display plain text without linking
+                  list.appendChild(item);
+                }
+              });
+              commandOutput.appendChild(list);
+            }
           } else {
             console.error('Failed to execute command');
             commandOutput.textContent = 'Error executing command.';
