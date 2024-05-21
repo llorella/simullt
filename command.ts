@@ -2,7 +2,7 @@ import { OpenAI } from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const lltools: OpenAI.Chat.Completions.ChatCompletionTool[] = JSON.parse(await Bun.file("commands.json").text());
+const lltools: OpenAI.Chat.Completions.ChatCompletionTool[] = JSON.parse(await Bun.file("lltools.json").text());
 
 interface CompletionResponse {
     tool_calls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
@@ -37,8 +37,7 @@ export async function executeCommand(command: string): Promise<any> {
     try {
         const { tool_calls, content } = await getCompletions(command);
         console.log("Content:\n" + content + "\nFunction:\n" + JSON.stringify(tool_calls[0].function));
-        const cmd = assembleCommand(tool_calls[0].function);
-        return cmd;
+        return { content: content, command: assembleCommand(tool_calls[0].function) };
     } catch (e) {
         console.error(e);
         return e;

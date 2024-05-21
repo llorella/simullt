@@ -14,17 +14,15 @@ async function serveStatic(filePath: string): Promise<Response> {
     if (filePath.includes('..') || filePath.includes('%')) {
       return new Response('Bad Request', { status: 400 });
     }
-
     const contentType = MIME_TYPES[filePath.slice(filePath.lastIndexOf('.'))] || 'application/octet-stream';
     const content = Bun.file(`./public/${filePath}`); 
-
     return new Response(content, {
       headers: {
         'Content-Type': contentType
       },
     });
   } catch (e) {
-    console.error(`Error serving ${filePath}:`, e.message);
+    console.error(`Error serving ${filePath}:`);
     return new Response("Not Found", { status: 404 });
   }
 }
@@ -37,9 +35,9 @@ async function serveTemplate(name: string, context: Record<string, any>): Promis
         'Content-Type': 'text/html'
       },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error(`Error rendering html template ${name}:`, e.message);
-    return new Response(e.message, { status: e.status });
+    return new Response(e.message, { status: 500 });
   }
 }
 
@@ -53,6 +51,22 @@ function renderTemplate(templateContent: string, context: Record<string, any> = 
 
 function getCurrentYear(): string {
   return new Date().getFullYear().toString();
+}
+
+type llcmd = { query: string, command: string, description: string };
+
+function logcmd(cmd: llcmd): void {
+  const logContent = Object.keys(cmd)
+    .map(key => `${key}: ${cmd[key as keyof llcmd]}`)
+    .join("\n");
+
+  try {
+    const writer = Bun.file(".logcmd").writer();
+    writer.write(logContent);
+    writer.end();
+  } catch (error) {
+    console.error("Failed to write to file:", error);
+  }
 }
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
@@ -70,11 +84,12 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       if (typeof query !== 'string') {
         throw new Error('Invalid query');
       }
-      const result: string= await executeCommand(query);
-      return new Response(result, { status: 200 })
-    } catch (e) {
-      console.error(`Error executing command:`, e.message);
-      return new Response(e.message, { status: e.status });
+      const { content, command } = await executeCommand(query);
+      logcmd({ query, command, description: content });
+      return new Response(command, { status: 200 })
+    } catch (e: any) {
+      console.error(`Error executing command:`, e);
+      return new Response(e.message, { status: 500 });
     }
   }
 };

@@ -1,9 +1,5 @@
-*
-
-!home.ts
-!command.ts
-!commands.json
-!llt.txt
-!./public/terminal.js
-!./public/terminal.css
-!./templates/index.html
+bun.lockb
+LICENSE
+tsconfig.json
+node_modules
+package.json
