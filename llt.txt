@@ -1,0 +1,130 @@
+<cmd>pwd</cmd>
+/home/ll/llt
+<cmd>ls
+api.py editor.py main.py message.py
+</cmd>
+<cmd>cat main.py</cmd>
+#!/usr/bin/python3
+import os
+
+from typing import List, Dict
+from enum import Enum, auto
+import traceback
+
+from message import load_message, write_message, view_message, new_message, prompt_message, remove_message, detach_message, append_message, cut_message, change_role, insert_message
+from editor import code_message, include_file, execute_command, edit_content, copy_to_clipboard
+from utils import export_messages, convert_text_base64
+from api import save_config, update_config, api_config, full_model_choices
+
+class ArgKey(Enum):
+    LL = auto()
+    DETACH = auto()
+    FILE = auto()
+    PROMPT = auto()
+    EXPORT = auto()
+    ROLE = auto()
+    EXEC = auto()
+    WEB = auto()
+    EMAIL = auto()
+    BASE64 = auto()
+    VIEW = auto()
+    NON_INTERACTIVE = auto()
+    WRITE = auto()
+
+plugins = {
+    'load': load_message,
+    'write': write_message,
+    'view': view_message,
+    'new': new_message,
+    'prompt': prompt_message,
+    'edit': code_message,
+    'file': include_file,
+    'quit': quit_program,
+    'insert': insert_message,
+    'remove': remove_message,
+    'detach': detach_message,
+    'append': append_message,
+    'cut': cut_message
+}
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="llt, the little language terminal")
+
+    def get_ll_files(prefix: str, parsed_args: argparse.Namespace, **kwargs) -> List[str]:
+        ll_dir = parsed_args.ll_dir if parsed_args.ll_dir else os.path.join(os.getenv('LLT_PATH'), api_config['ll_dir'])
+        return [f for f in os.listdir(ll_dir) if f.startswith(prefix)]
+
+    parser.add_argument('--ll', '-l', type=str, help="Language log file. JSON formatted list of natural language messages.", default="").completer = get_ll_files
+    parser.add_argument('--file', '-f', type=str, help="Read content from a file and include it in the ll.", default="")
+    parser.add_argument('--prompt', '-p', type=str, help="Prompt string.", default="")
+    
+    return parser.parse_args()
+
+def init_directories(args: argparse.Namespace) -> None:
+    for directory in [args.ll_dir, args.exec_dir, args.cmd_dir]:
+        os.makedirs(directory, exist_ok=True)
+
+def help_message(messages: List[Dict], args: argparse.Namespace) -> List[Dict]:
+    # blackbox function, implementation trivial
+    return messages
+
+test_commands = {
+    'sc': save_config,
+    'uc': update_config,
+    'cr': change_role,
+    'ec': edit_content,
+    'help': help_message, 
+    'base64': convert_text_base64,
+    'execute': execute_command,
+    'email': send_email,
+    'web': process_web_request}
+
+def get_combined_commands():
+    combined = {}
+    for command, function in {**plugins, **test_commands}.items():
+        combined[command] = function
+        if command[0] not in combined: combined[command[0]] = function
+        elif len(command) > 2 and command[1] not in combined: combined[command[1]] = function
+    return combined    
+
+def run_non_interactive(messages: List[Dict], args: argparse.Namespace) -> None:
+    prompt_message(messages, args)
+    # args.ll can also be used as flag for writing to file if there exists an ll file
+    # if args.write: write_message(messages, args)
+    if args.ll: write_message(messages, args)
+    exit(0)
+
+def main() -> None:
+    args = parse_arguments()
+    init_directories(args)
+    messages = list()
+
+    startup_functions =  {
+        ArgKey.LL: load_message,
+        ArgKey.FILE: include_file,
+        ArgKey.PROMPT: new_message
+    }
+    
+    for arg_key, func in startup_functions.items():
+        if getattr(args, arg_key.name.lower(), None):
+            messages = func(messages, args)
+
+    command_map = get_combined_commands()
+
+    while True:
+        try:
+            cmd = input('llt> ')
+            if cmd in command_map:
+                messages = command_map[cmd](messages, args)
+                log_command(cmd, messages, args)
+            elif cmd: messages.append({'role': args.role, 'content': f"{cmd}"})
+if __name__ == "__main__":
+    main()
+
+<cmd>alias llt='python3 main.py'</cmd>
+<cmd>llt --help</cmd>
+usage: llt [-h] [--ll LL] [--file FILE] [--prompt PROMPT]
+
+llt, the little language terminal
+<cmd>llt --ll test_home_page.ll --file /public/index.html --p "Transform the current index.html into a single page (condense about, contacts, etc into one). Simply focus on making a good ui for a simple page."</cmd>
+<cmd>llt --ll complete_matmul.ll --file matmul.py --p "Complete the matmul function in matmul.py."</cmd>

@@ -36,12 +36,12 @@ async function serveTemplate(name: string, context: Record<string, any>): Promis
     const templatePath = `./templates/${name}.html`;
     let templateContent = await Bun.file(templatePath).text();
     const content = renderTemplate(templateContent, context);
-    const CSP_HEADER_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'";
+    //const CSP_HEADER_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'";
 
     return new Response(content, {
       headers: {
         'Content-Type': 'text/html',
-        'Content-Security-Policy': CSP_HEADER_VALUE,
+        //'Content-Security-Policy': CSP_HEADER_VALUE,
       },
     });
   } catch (e) {
@@ -80,11 +80,10 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
         throw new Error('Invalid command');
       }
   
-      const result = await executeCommand(command);
-      /* return new Response(await result.text(), {
-        headers: { 'Content-Type': result.headers['Content-Type']},
-      }); */
-      return new Response(await result.text(), { status: 200, headers: {'Content-Type': result.headers['Content-Type']} })
+      const result: string= await executeCommand(command);
+  
+      console.log(result);
+      return new Response(result, { status: 200 })
     } catch (e) {
       console.error(`Error executing command:`, e.message);
       return new Response("Internal Server Error", { status: 500 });
