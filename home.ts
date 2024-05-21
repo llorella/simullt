@@ -1,6 +1,8 @@
 import { serve } from "bun";
 import { executeCommand } from "./command";
 
+const logfile = ".logcmd";
+
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.css': 'text/css',
@@ -8,6 +10,8 @@ const MIME_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon', 
   '.png': 'image/png',
 };
+
+type llcmd = { query: string, command: string, description: string };
 
 async function serveStatic(filePath: string): Promise<Response> {
   try {
@@ -53,17 +57,13 @@ function getCurrentYear(): string {
   return new Date().getFullYear().toString();
 }
 
-type llcmd = { query: string, command: string, description: string };
-
-function logcmd(cmd: llcmd): void {
-  const logContent = Object.keys(cmd)
+async function logcmd(cmd: llcmd) {
+  let llcmd = Object.keys(cmd)
     .map(key => `${key}: ${cmd[key as keyof llcmd]}`)
-    .join("\n");
-
+    .join("\n") + "\n\n";
   try {
-    const writer = Bun.file(".logcmd").writer();
-    writer.write(logContent);
-    writer.end();
+    const llcmds = await Bun.file(logfile).text();
+    await Bun.write(logfile, llcmds.concat(llcmd));
   } catch (error) {
     console.error("Failed to write to file:", error);
   }
@@ -85,7 +85,8 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
         throw new Error('Invalid query');
       }
       const { content, command } = await executeCommand(query);
-      logcmd({ query, command, description: content });
+      const description = content == null ? "Description not provided" : content;
+      await logcmd({ query, command, description });
       return new Response(command, { status: 200 })
     } catch (e: any) {
       console.error(`Error executing command:`, e);
