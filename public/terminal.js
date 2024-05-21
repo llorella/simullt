@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
         const formData = new FormData();
         formData.append('query', query);
-  
+        commandOutput.innerHTML = 'loading llt simulator..'
         fetch('/ll', {
           method: 'POST',
           body: formData,

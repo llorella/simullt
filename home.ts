@@ -56,9 +56,8 @@ function getCurrentYear(): string {
 }
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
-  '/': async () => serveTemplate('llt', { 
-    heading: 'little language terminal', 
-    message: 'llt> (enter command)',
+  '/': async () => serveTemplate('index', { 
+    heading: "little language terminal", 
     year: getCurrentYear() 
   }),
   '/ll': async (req) => {

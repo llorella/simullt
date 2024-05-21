@@ -25,7 +25,7 @@ async function getCompletions(prompt: string): Promise<CompletionResponse> {
         tools: lltools,
         tool_choice: {"type": "function", "function": {"name": "llt"}},
         model: "gpt-4-turbo",
-        temperature: 0.7
+        temperature: 1.5
     });
     console.log(completion);
     console.log(completion.choices[0].message);
