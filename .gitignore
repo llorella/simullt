@@ -3,3 +3,5 @@ LICENSE
 tsconfig.json
 node_modules
 package.json
+.vscode
+home.code-workspace
