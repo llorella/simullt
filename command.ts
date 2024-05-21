@@ -11,8 +11,8 @@ interface CompletionResponse {
 
 function assembleCommand(toolFunction: OpenAI.Chat.Completions.ChatCompletionMessageToolCall.Function): string {
     const { name, arguments: argsJson } = toolFunction;
-    const args = JSON.parse(argsJson);
-    return `<cmd>${name} ${Object.keys(args).map(key => `--${key} ${args[key]}`).join(' ')}</cmd>`;
+    const params = JSON.parse(argsJson);
+    return `<cmd>${name} ${Object.keys(params).map(key => `--${key} ${params[key]}`).join(' ')}</cmd>`;
 }
 
 async function getCompletions(prompt: string): Promise<CompletionResponse> {
@@ -36,8 +36,7 @@ async function getCompletions(prompt: string): Promise<CompletionResponse> {
 export async function executeCommand(command: string): Promise<any> {
     try {
         const { tool_calls, content } = await getCompletions(command);
-        console.log("Content:\n" + content);
-        console.log("Function:\n" + JSON.stringify(tool_calls[0].function));
+        console.log("Content:\n" + content + "\nFunction:\n" + JSON.stringify(tool_calls[0].function));
         const cmd = assembleCommand(tool_calls[0].function);
         return cmd;
     } catch (e) {

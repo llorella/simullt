@@ -5,19 +5,18 @@ document.addEventListener('DOMContentLoaded', function() {
     commandInput.addEventListener('keypress', async (e) => {
       if (e.key === 'Enter') {
         e.preventDefault(); 
-        const command = e.target.value;
+        const query = e.target.value;
         e.target.value = '';
   
         const formData = new FormData();
-        formData.append('command', command);
+        formData.append('query', query);
   
-        fetch('/execute-command', {
+        fetch('/ll', {
           method: 'POST',
           body: formData,
         })
           .then((response) => response.text())
           .then((content) => {
-            console.log(content);
             commandOutput.innerHTML = content;
           })
           .catch((error) => {

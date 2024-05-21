@@ -17,12 +17,10 @@ async function serveStatic(filePath: string): Promise<Response> {
 
     const contentType = MIME_TYPES[filePath.slice(filePath.lastIndexOf('.'))] || 'application/octet-stream';
     const content = Bun.file(`./public/${filePath}`); 
-    const cacheControl = "public, max-age=86400"; 
 
     return new Response(content, {
       headers: {
-        'Content-Type': contentType,
-        'Cache-Control': cacheControl,
+        'Content-Type': contentType
       },
     });
   } catch (e) {
@@ -33,20 +31,15 @@ async function serveStatic(filePath: string): Promise<Response> {
 
 async function serveTemplate(name: string, context: Record<string, any>): Promise<Response> {
   try {
-    const templatePath = `./templates/${name}.html`;
-    let templateContent = await Bun.file(templatePath).text();
-    const content = renderTemplate(templateContent, context);
-    //const CSP_HEADER_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'";
-
-    return new Response(content, {
+    const html = renderTemplate(await Bun.file(`./templates/${name}.html`).text(), context);
+    return new Response(html, {
       headers: {
-        'Content-Type': 'text/html',
-        //'Content-Security-Policy': CSP_HEADER_VALUE,
+        'Content-Type': 'text/html'
       },
     });
   } catch (e) {
-    console.error(`Error rendering template ${name}:`, e.message);
-    return new Response("Not Found", { status: 404 });
+    console.error(`Error rendering html template ${name}:`, e.message);
+    return new Response(e.message, { status: e.status });
   }
 }
 
@@ -63,30 +56,26 @@ function getCurrentYear(): string {
 }
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
-  '/': async () => serveTemplate('index', { 
+  '/': async () => serveTemplate('llt', { 
     heading: 'little language terminal', 
     message: 'llt> (enter command)',
     year: getCurrentYear() 
   }),
-  '/execute-command': async (req) => {
+  '/ll': async (req) => {
     if (req.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
-  
     try {
       const formData = await req.formData();
-      const command = formData.get('command');
-      if (typeof command !== 'string') {
-        throw new Error('Invalid command');
+      const query = formData.get('query');
+      if (typeof query !== 'string') {
+        throw new Error('Invalid query');
       }
-  
-      const result: string= await executeCommand(command);
-  
-      console.log(result);
+      const result: string= await executeCommand(query);
       return new Response(result, { status: 200 })
     } catch (e) {
       console.error(`Error executing command:`, e.message);
-      return new Response("Internal Server Error", { status: 500 });
+      return new Response(e.message, { status: e.status });
     }
   }
 };
