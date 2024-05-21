@@ -4,6 +4,6 @@
 !command.ts
 !commands.json
 !llt.txt
-!public/terminal.js
-!public/terminal.css
-!templates/index.html
+!./public/terminal.js
+!./public/terminal.css
+!./templates/llt.html
