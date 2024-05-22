@@ -1,5 +1,5 @@
 import { serve } from "bun";
-import { executeCommand } from "./command";
+import { cmdQuery } from "./command";
 
 const logfile = ".logcmd";
 
@@ -10,8 +10,6 @@ const MIME_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon', 
   '.png': 'image/png',
 };
-
-type llcmd = { query: string, command: string, description: string };
 
 async function serveStatic(filePath: string): Promise<Response> {
   try {
@@ -57,15 +55,15 @@ function getCurrentYear(): string {
   return new Date().getFullYear().toString();
 }
 
-async function logcmd(cmd: llcmd) {
-  let llcmd = Object.keys(cmd)
-    .map(key => `${key}: ${cmd[key as keyof llcmd]}`)
+async function logcmd(ll: any) {
+  let cmds = Object.keys(ll)
+    .map(key => `${key}: ${ll[key]}`)
     .join("\n") + "\n\n";
   try {
     const llcmds = await Bun.file(logfile).text();
-    await Bun.write(logfile, llcmds.concat(llcmd));
+    await Bun.write(logfile, llcmds.concat(cmds));
   } catch (error) {
-    console.error("Failed to write to file:", error);
+    console.error(error);
   }
 }
 
@@ -84,15 +82,30 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       if (typeof query !== 'string') {
         throw new Error('Invalid query');
       }
-      const { content, command } = await executeCommand(query);
-      const description = content == null ? "Description not provided" : content;
+      const { content, command } = await cmdQuery(query);
+      const description = content == null ? "Description not provided" : content; //maybe add separate call to provide explanation
       await logcmd({ query, command, description });
       return new Response(command, { status: 200 })
     } catch (e: any) {
       console.error(`Error executing command:`, e);
       return new Response(e.message, { status: 500 });
     }
-  }
+  },
+  '/runCommand': async (req) => {
+    const formData = await req.formData();
+    const command = formData.get('command');
+    console.log(command);
+    const feedback = formData.get('feedback');
+    console.log(feedback);
+    await logcmd({ command: command, feedback: feedback }); 
+    if (feedback === 'run') {
+      return new Response("Command will be executed.", { status: 200 });
+    } else if (feedback === 'reject') {
+      return new Response("Command rejected. Feedback will be logged and reviewed for further improvements to the llt.", { status: 200 });
+    }
+    else {
+      return new Response("Error", { status: 500 });
+  }}
 };
 
 serve({

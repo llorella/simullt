@@ -18,14 +18,14 @@ function assembleCommand(toolFunction: OpenAI.Chat.Completions.ChatCompletionMes
 async function getCompletions(prompt: string): Promise<CompletionResponse> {
     const completion = await openai.chat.completions.create({
         messages: [
-            { role: "system", content: "Assistant is in an llt mood today. Assistant will be given two user messages. The first user message contains the command log of the llt programmer. The second user message will describe an llt user's desired command. Assistant's job is to map the second user message to an llt command. Never leave an argument blank. Be creative. Deduce user intent and formulate tool invokation of llt." },
+            { role: "system", content: "Assistant is in an llt mood today. Assistant will be given two user messages. The first user message contains the command log of the llt programmer. The second user message will describe an llt user's desired command. Assistant's job is to map the second user message to an llt command. Deduce user intent. Never leave a parameter value blank. Be creative.  and formulate tool invokation of llt. Always review your tool choice and provide a thorough explanation for your tool choice. If you realize that the tool choice is not appropriate, you can reject the command and provide feedback to the user. Don't be afraid to think out loud." },
             { role: "user", content: await Bun.file("llt.txt").text()},
             { role: "user", content: prompt }
         ],
         tools: lltools,
         tool_choice: {"type": "function", "function": {"name": "llt"}},
         model: "gpt-4-turbo",
-        temperature: 1.5
+        temperature: 1.1
     });
     console.log(completion);
     console.log(completion.choices[0].message);
@@ -33,9 +33,9 @@ async function getCompletions(prompt: string): Promise<CompletionResponse> {
     return completion.choices[0].message as CompletionResponse;
 }
 
-export async function executeCommand(command: string): Promise<any> {
+export async function cmdQuery(query: string): Promise<any> {
     try {
-        const { tool_calls, content } = await getCompletions(command);
+        const { tool_calls, content } = await getCompletions(query);
         console.log("Content:\n" + content + "\nFunction:\n" + JSON.stringify(tool_calls[0].function));
         return { content: content, command: assembleCommand(tool_calls[0].function) };
     } catch (e) {
