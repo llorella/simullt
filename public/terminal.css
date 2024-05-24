@@ -1,111 +1,114 @@
 :root {
-  --background-color: #333;
-  --text-color: #fff;
-  --input-bg-color: #222;
-  --input-focus-border-color: #555;
-  --terminal-width: 80%;
-  --terminal-max-width: 800px;
-  --terminal-border-radius: 4px;
-  --terminal-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --font-stack: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --hero-margin: 20px 0;
-  --main-gap: 20px;
-  --input-padding: 10px;
-  --footer-margin-top: 20px;
+  --background-color: #282c34;
+  --text-color: #abb2bf;
+  --input-bg-color: #3a3f4b;
+  --input-focus-border-color: #61afef;
+  --terminal-width: 90%;
+  --terminal-max-width: 900px;
+  --terminal-border-radius: 6px;
+  --terminal-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --font-stack: 'Consolas', 'Courier New', monospace;
+  --font-size: 18px;    /* Increased font size */
+  --main-padding: 40px; /* Increased padding */
 }
 
-/* General styles */
+* {
+  box-sizing: border-box; /* Adjust box sizing to include padding and borders */
+}
+
 body {
   font-family: var(--font-stack);
   margin: 0;
   padding: 0;
   background-color: var(--background-color);
   color: var(--text-color);
+  font-size: var(--font-size);
 }
 
-/* Main layout */
 main {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--main-gap);
-  padding: var(--hero-margin);
+  gap: var(--main-padding);
+  padding: var(--main-padding);
 }
 
-#llt_design {
-  display: block; /* Makes sure it's a block element for margin auto to work */
-  margin: 0 auto; /* Centers the image horizontally */
-  max-width: 100%; /* Ensures the image is responsive and doesn't overflow its container */
-  height: auto; /* Maintains aspect ratio */
-}
-
-/* Hero section */
 .hero {
   text-align: center;
-  margin: var(--hero-margin);
-}
-
-#design {
-  width: 100px;
-  height: auto;
+  margin: var(--main-padding) 0;
 }
 
 #terminal {
-  display: flex;  
-  align-items: center; /* Center-align children vertically */
-  gap: 5px; /* Space between logo and command input */
-  background-color: var(--background-color);
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between items */
+  background-color: var(--input-bg-color);
   color: var(--text-color);
-  padding: var(--input-padding);
+  padding: 10px;
   width: var(--terminal-width);
   max-width: var(--terminal-max-width);
   border-radius: var(--terminal-border-radius);
   box-shadow: var(--terminal-shadow);
-}
-
-/* Logo styling */
-#logo {
-  width: 40px; /* A reasonable size for the logo */
-  height: auto; /* Maintain aspect ratio */
+  flex-direction: column; /* Stack vertically */
 }
 
 #commandInput {
-  flex-grow: 1; /* Command input will take the remaining space */
-  padding: var(--input-padding);
+  flex-grow: 1;
+  padding: 10px;
   background: var(--input-bg-color);
-  border: 1px solid transparent; /* Default border to maintain layout consistency */
+  border: 1px solid transparent;
   color: var(--text-color);
-  font-family: var(--font-stack);
+  width: 100%; /* Full width within container */
 }
 
-/* Focus state for input */
 #commandInput:focus {
   border-color: var(--input-focus-border-color);
 }
 
-/* Footer styling */
-footer {
-  text-align: center;
-  margin-top: var(--footer-margin-top);
+#simulatorOutput, #commandOutput {
+  background-color: var(--input-bg-color);
+  color: var(--text-color);
+  padding: 10px;
+  border-radius: var(--terminal-border-radius);
+  width: 100%; /* Full width to match input */
+  margin-top: 10px; /* Space from input */
 }
 
-/* Responsive design adjustments */
+button {
+  background-color: var(--input-bg-color);
+  color: var(--text-color);
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: var(--terminal-border-radius);
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--input-focus-border-color);
+}
+
+footer {
+  text-align: center;
+  margin-top: 20px; /* Space from main content */
+}
+
 @media (max-width: 768px) {
   #terminal {
-    width: 95%;
+    width: 100%;
     max-width: none;
   }
 
   main {
-    gap: 15px;
+    gap: 20px;
   }
 
   .hero {
-    margin: 15px 0;
+    margin: 20px 0;
   }
 
   footer {
-    margin-top: 15px;
+    margin-top: 20px;
   }
 }

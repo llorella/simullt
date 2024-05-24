@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="terminal.css">
     <title>llt</title>
 </head>
-<script src="terminal.js"></script>
 <body>
     <main>
         <section class="hero">
@@ -15,11 +14,17 @@
         </section>
         <section id="terminal">
             <input type="text" id="commandInput" name="llt" placeholder='llt> (enter query)' autofocus />
+            <div id="commandOptions" style="display:none;">
+                <button id="runCommand">Run</button>
+                <button id="rejectCommand">Reject</button>
+            </div>
+            <div id="simulatorOutput"></div>
         </section>
         <div id="commandOutput"></div>
     </main>
     <footer>
         <p>&copy; {{ year }} llt. All rights reserved.</p>
     </footer>
+    <script src="terminal.js"></script>
 </body>
 </html>

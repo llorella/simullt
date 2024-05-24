@@ -1,5 +1,5 @@
 import { serve } from "bun";
-import { cmdQuery } from "./command";
+import { cmdQuery, simCmd } from "./command";
 
 const logfile = ".logcmd";
 
@@ -69,7 +69,7 @@ async function logcmd(ll: any) {
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   '/': async () => serveTemplate('index', { 
-    heading: "little language terminal", 
+    heading: "teleprompter", 
     year: getCurrentYear() 
   }),
   '/ll': async (req) => {
@@ -91,7 +91,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       return new Response(e.message, { status: 500 });
     }
   },
-  '/runCommand': async (req) => {
+  '/sim': async (req) => {
     const formData = await req.formData();
     const command = formData.get('command');
     console.log(command);
@@ -99,12 +99,13 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
     console.log(feedback);
     await logcmd({ command: command, feedback: feedback }); 
     if (feedback === 'run') {
-      return new Response("Command will be executed.", { status: 200 });
+      //const simOutput = await simCmd(command as string);
+      return new Response("Simulator coming soon.", { status: 200 });
     } else if (feedback === 'reject') {
-      return new Response("Command rejected. Feedback will be logged and reviewed for further improvements to the llt.", { status: 200 });
+      return new Response("Thank you for your feedback. Your input will be reviewed and used for improving the teleprompter.", { status: 200 });
     }
     else {
-      return new Response("Error", { status: 500 });
+      return new Response("Error", { status: 400 });
   }}
 };
 

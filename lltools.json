@@ -3,24 +3,29 @@
         "type": "function",
         "function": {
             "name": "llt",
-            "description": "llt is an alias for main() in the main.py file.",
+            "description": "llt is an alias for `python main.py` in the llt source directory.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "ll": { 
                         "type": "string", 
-                        "description": "The name of the ll file to load."
+                        "description": "The name of the ll file to load. The file path name space that stores the running ll, the collaborative thread between user and assistant. The ll can only be transformed by commands."
                     },
                     "file": { 
                         "type": "string", 
-                        "description": "Read content from a file and include it in the ll."
+                        "description": "Source file whose contents will be attached to llt session. Often used as context or as the desired file to transform."
                     },
                     "prompt": { 
                         "type": "string", 
-                        "description": "Prompt string."
+                        "description": "Descriptive prompt to use for the llt session. You can embed bash commands in the prompt if you want. Make sure the prompt is extremely thorough and descriptive."
+                    },
+                    "role": {
+                        "type": "string",
+                        "description": "Role to use for the llt user.",
+                        "enum": ["user", "assistant", "system", "llt"]
                     }
                 }, 
-                "required": ["ll", "file", "prompt"]
+                "required": ["ll", "prompt"]
             }
         }
     }

@@ -1,20 +1,30 @@
 <cmd>pwd</cmd>
 /home/ll/llt
-<cmd>ls
-api.py editor.py main.py message.py
-</cmd>
+<cmd>ls</cmd>
+api.py editor.py main.py message.py utils.py web.py
+<cmd>alias llt='python3 main.py'</cmd>
+<cmd>llt --help</cmd>
+usage: llt [-h] [--ll LL] [--file FILE] [--prompt PROMPT] [ --role ROLE ]
+llt, the little language terminal
 <cmd>cat main.py</cmd>
 #!/usr/bin/python3
 import os
-
+import json
+import datetime
+import argcomplete
+import argparse
 from typing import List, Dict
 from enum import Enum, auto
 import traceback
 
 from message import load_message, write_message, view_message, new_message, prompt_message, remove_message, detach_message, append_message, cut_message, change_role, insert_message
 from editor import code_message, include_file, execute_command, edit_content, copy_to_clipboard
-from utils import export_messages, convert_text_base64
+from utils import Colors, quit_program, tokenize, export_messages, convert_text_base64
 from api import save_config, update_config, api_config, full_model_choices
+from gmail import send_email
+from web import process_web_request
+
+#from logcmd_llt_branch_1 import search_messages, export_messages_to_markdown
 
 class ArgKey(Enum):
     LL = auto()
@@ -56,16 +66,67 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument('--ll', '-l', type=str, help="Language log file. JSON formatted list of natural language messages.", default="").completer = get_ll_files
     parser.add_argument('--file', '-f', type=str, help="Read content from a file and include it in the ll.", default="")
+    parser.add_argument('--image_path', type=str, default="")
+
     parser.add_argument('--prompt', '-p', type=str, help="Prompt string.", default="")
+    parser.add_argument('--role', '-r', type=str, help="Specify role.", default="user")
+
+    parser.add_argument('--model', '-m', type=str, help="Specify model.", default="gpt-4-turbo", choices=full_model_choices)
+    parser.add_argument('--temperature', '-t', type=float, help="Specify temperature.", default=0.9)
     
+    parser.add_argument('--max_tokens', type=int, help="Maximum number of tokens to generate.", default=4096)
+    parser.add_argument('--logprobs', type=int, help="Include log probabilities in the output, up to the specified number of tokens.", default=0)
+    parser.add_argument('--top_p', type=float, help="Sample from top P tokens.", default=1.0)
+
+    parser.add_argument('--cmd_dir', type=str, default=os.path.join(os.getenv('LLT_PATH'), api_config['cmd_dir']))
+    parser.add_argument('--exec_dir', type=str, default=os.path.join(os.getenv('LLT_PATH'), api_config['exec_dir']))
+    parser.add_argument('--ll_dir', type=str, default=os.path.join(os.getenv('LLT_PATH'), api_config['ll_dir']))
+
+    parser.add_argument('--non_interactive', '-n', action='store_true', help="Run in non-interactive mode.")
+
+    # All plugin flags here
+    parser.add_argument('--detach', action='store_true', help="Pop last message from given ll.")
+    parser.add_argument('--export', action='store_true', help="Export messages to a file.")
+    parser.add_argument('--exec', action='store_true', help="Execute the last message")
+    parser.add_argument('--view', action='store_true', help="Print the last message.")
+    parser.add_argument('--write', action='store_true', help="Write conversation to file (for non-interactive mode).")
+
+    parser.add_argument('--email', action='store_true', help="Send an email with the last message.")
+    parser.add_argument('--web', type=str, help="Dump a list of user specified tags and their contents to next message.", default=None, choices=['pre', 'p'])
+
+    argcomplete.autocomplete(parser)
     return parser.parse_args()
 
 def init_directories(args: argparse.Namespace) -> None:
     for directory in [args.ll_dir, args.exec_dir, args.cmd_dir]:
         os.makedirs(directory, exist_ok=True)
 
+def log_command(command: str, messages: List[Dict], args: dict) -> None:
+    if command.startswith('v') or command.startswith('h') or not messages: return
+    tokens = tokenize(messages, args) if messages else 0
+    log_path = os.path.join(args.cmd_dir, os.path.splitext(os.path.basename(args.ll))[0] + ".log")
+    if not os.path.exists(log_path): os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    with open(log_path, 'a') as logfile:
+        logfile.write(f"COMMAND_START\n")
+        logfile.write(f"timestamp: {datetime.datetime.now().isoformat()}\n")
+        logfile.write(f"before_command: {json.dumps(messages, indent=2)}\n")  
+        logfile.write(f"args: {json.dumps(vars(args), indent=2)}\n")
+        logfile.write(f"command: {command}\n")
+        logfile.write(f"input: TO IMPLEMENT\n")
+        logfile.write(f"after_command: {json.dumps(messages[-1], indent=2)}\n")
+        logfile.write(f"tokens: {tokens}\n")
+        logfile.write(f"COMMAND_END\n\n")
+
 def help_message(messages: List[Dict], args: argparse.Namespace) -> List[Dict]:
-    # blackbox function, implementation trivial
+    function_to_commands = {}
+    for command, function in get_combined_commands().items():
+        if function not in function_to_commands:
+            function_to_commands[function] = []
+        function_to_commands[function].append(command)
+
+    for function, cmds in function_to_commands.items():
+        cmds.sort(key=lambda x: len(x), reverse=True)
+        print(f"({', '.join(cmds)}): {function}")
     return messages
 
 test_commands = {
@@ -92,8 +153,14 @@ def run_non_interactive(messages: List[Dict], args: argparse.Namespace) -> None:
     # args.ll can also be used as flag for writing to file if there exists an ll file
     # if args.write: write_message(messages, args)
     if args.ll: write_message(messages, args)
-    exit(0)
+    copy_to_clipboard(args.ll)
+    quit_program(messages, args)
 
+user_greeting = lambda username, args: f"Hello {username}! You are using ll file {args.ll if args.ll else None}, with model {args.model} set to temperature {args.temperature}. Type 'help' for available commands."
+#  add buffer for any input that is not a command nor a message
+#  only available for interactive mode user input spec: function type that invokes some input fn with format string specific to plugin command invocation
+#  i.e., load and write calls input fn with format string "Enter file path (default is {default_file}): "
+#  n cmd and/or freeforn at the cmd line, "the meta-command" is the else clause in main cmd loop
 def main() -> None:
     args = parse_arguments()
     init_directories(args)
@@ -102,15 +169,28 @@ def main() -> None:
     startup_functions =  {
         ArgKey.LL: load_message,
         ArgKey.FILE: include_file,
-        ArgKey.PROMPT: new_message
+        ArgKey.PROMPT: new_message,
+        ArgKey.DETACH: detach_message,
+        ArgKey.EXPORT: export_messages,
+        ArgKey.EXEC: execute_command,
+        ArgKey.WEB: process_web_request,
+        ArgKey.EMAIL: send_email,
+        ArgKey.BASE64: convert_text_base64,
+        ArgKey.VIEW: view_message,
+        ArgKey.NON_INTERACTIVE: run_non_interactive,
+        ArgKey.WRITE: write_message
     }
     
     for arg_key, func in startup_functions.items():
         if getattr(args, arg_key.name.lower(), None):
             messages = func(messages, args)
 
+    Colors.print_header()
+    print(user_greeting(os.getenv('USER'), args))
     command_map = get_combined_commands()
-
+    # this is the main command loop
+    # the author's hypothesis is that this is all you need for an agent to work. better plugins, including 'meta' plugins, are all you need. 
+    # receive input, transform it, repeat
     while True:
         try:
             cmd = input('llt> ')
@@ -118,13 +198,255 @@ def main() -> None:
                 messages = command_map[cmd](messages, args)
                 log_command(cmd, messages, args)
             elif cmd: messages.append({'role': args.role, 'content': f"{cmd}"})
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
+        except Exception as e:
+            print(f"An error occurred: {e}\nAppend error ")
+            print(traceback.format_exc())
+
 if __name__ == "__main__":
     main()
 
-<cmd>alias llt='python3 main.py'</cmd>
-<cmd>llt --help</cmd>
-usage: llt [-h] [--ll LL] [--file FILE] [--prompt PROMPT]
 
-llt, the little language terminal
-<cmd>llt --ll test_home_page.ll --file /public/index.html --p "Transform the current index.html into a single page (condense about, contacts, etc into one). Simply focus on making a good ui for a simple page."</cmd>
-<cmd>llt --ll complete_matmul.ll --file matmul.py --p "Complete the matmul function in matmul.py."</cmd>
+# thoughts
+# llt works really well with one off scripts. if you have a one off script, you can easily create an entry function that takes in a list of messages and returns a list of messages.
+# this is all you need to do to get a script to work with llt.
+# so, we want to automate this process. give an ai a script, and interop with llt.
+<cmd>llt--ll llt/web_improve.ll--file /tmp/llt --prompt 'Grok what web.py is doing, and how it serves a purpose in llt as it encapsulates functionality for interacting with web pages, and attaching results to the messages list, so that it may be used in the next iteration of main loop. Right now, it works, but its scope is limited and only works for paragraph or code block tags. Make it generic, so that it can generalize to different wanted content of web page.'</cmd>
+***Welcome to llt, the little language terminal***
+Enter file path (default is llt/web_improve.ll): Enter file path (default is /tmp/llt):
+Hello luciano! You are using ll file llt/web_improve.ll, with model gpt-4-turbo set to temperature 0.9. Type 'help' for available commands.
+llt> p
+The `web.py` module in the `llt` (little language terminal) system provides functionality for fetching and processing content from web pages. As described, it currently extracts only specific tags (`<pre>` or `<p>`), which limits its utility. To enhance this module and make it more versatile, we can expand its capabilities to handle a broader range of HTML tags and attributes. This way, it can fetch and process various elements from web pages according to user-defined criteria.
+
+Here are steps to improve and generalize the `web.py` module:
+1. **Extend Tag Choices**: Allow the user to specify any HTML tag and attributes they're interested in.
+2. **Attribute Filtering**: Enable filtering of these tags by their attributes.
+3. **Custom Output Formatting**: Allow customization of output formatting based on the content of the tags.
+4. **Error Handling and Input Validation**: Improve robustness by handling potential errors and validating user input more rigorously.
+
+### Updated `web.py` Code Implementation
+
+```python
+import sys
+import requests
+import json
+import re
+from bs4 import BeautifulSoup, Tag
+from typing import List, Dict
+from message import Message
+
+def fetch_html(url: str) -> str:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error fetching URL {url}: {e}")
+        return None
+
+def find_tags(html_content: str, tag: str = 'p', attributes: dict = {}) -> List[Tag]:
+    soup = BeautifulSoup(html_content, 'html.parser')
+    return soup.find_all(tag, attributes)
+
+def process_web_request(messages: List[Message], args: Dict) -> List[Message]:
+    message_index = int(args.get('index', 0))  # Default to the first message if index isn't specified
+    if message_index >= len(messages):
+        print("Error: Index out of range.")
+        return messages
+    
+    url_content = messages[message_index]['content']
+    html_content = fetch_html(url_content)
+    if not html_content:
+        messages.append(Message(role='system', content="Failed to fetch or parse the web content."))
+        return messages
+    
+    tag = args.get('tag', 'p')  # Default to paragraph tags
+    attrs = json.loads(args.get('attrs', '{}'))  # Expect attributes in JSON format, default to empty dict
+    
+    tags = find_tags(html_content, tag, attrs)
+    content = "\n".join([tag.get_text(strip=True) for tag in tags])
+    messages.append(Message(role=args['role'], content=content))
+    
+    return messages
+
+def main():
+    if len(sys.argv) >= 2:
+        url = sys.argv[1]
+        tag = sys.argv[2] if len(sys.argv) > 2 else 'p'
+        attrs = sys.argv[3] if len(sys.argv) > 3 else '{}'
+        args = {'role': 'user', 'tag': tag, 'attrs': attrs}
+        messages = [Message(role='user', content=url)]
+        updated_messages = process_web_request(messages, args)
+        print(json.dumps([msg for msg in updated_messages], default=lambda o: o.__dict__, indent=2))
+    else:
+        print("Usage: script.py <url> [tag] [attributes]")
+
+if __name__ == "__main__":
+    main()
+```
+
+### Explanation of Enhancements:
+
+1. **Custom Tags and Attributes**: Users can now specify any HTML tag and a JSON string representing attributes they're looking for.
+2. **Dynamic Message Addition**: Content fetched based on user criteria is added dynamically to list of messages.
+3. **Main Function with Flexible CLI**: The `web.py` can now be invoked with command-line arguments specifying URL, tag, and attributes, making it more versatile for different use cases.
+
+This updated approach allows `web.py` to serve as a more generic and flexible tool within the `llt` framework, making web data scraping and integration into the conversation flow more seamless and adaptable to user needs.
+llt> q
+<cmd>ls ../scripts</cmd>
+append_file.py
+code_blocks.py
+create_symlinks.sh
+hf_dl_model.sh
+images_to_hf_parquet.py
+logcmd.sh
+s3.py
+screencasts_rename.sh
+<cmd>cat ../scripts/append_file.py</cmd>
+#!/usr/bin/env python3
+import argparse
+import os
+
+language_extension_map = {
+    'python': '.py',
+    'shell': '.sh',
+    'text': '.txt',
+    'markdown': '.md',
+    'html': '.html',
+    'css': '.css',
+    'javascript': '.js',
+    'typescript': '.ts',
+    'json': '.json',
+    'yaml': '.yaml',
+    'c': '.c',
+    'cpp': '.cpp',
+    'rust': '.rs',
+    'csv': '.csv',
+}
+
+inverse_kv_map = lambda d: {v: k for k, v in d.items()}
+
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
+def format_content(content):
+    return '```\n{}\n```\n'.format(content)
+
+def main():
+    parser = argparse.ArgumentParser(description='Format file content in markdown style.')
+    parser.add_argument('file_dir', metavar='D', type=str,
+                        help='Directory where the files are located.')
+    parser.add_argument('file_names', metavar='N', type=str, nargs='+',
+                        help='A list of file names for the files you want to read and format.')
+    args = parser.parse_args()
+
+    markdown_content = ''
+    for file_name in args.file_names:
+        file_path = os.path.join(args.file_dir, file_name)
+        if os.path.isfile(file_path):
+            content = read_file(file_path)
+            (root, ext) = os.path.splitext(file_name)
+            language = inverse_kv_map(language_extension_map)[ext]
+            markdown_content += f'\n## {file_name}\n' + format_content(content)
+        else:
+            print(f'Invalid file path: {file_path}')
+
+    print(markdown_content)
+
+if __name__ == "__main__":
+    main()
+<cmd>llt --ll llt/append_file_plugin.ll --file ../scripts/append_file.py --prompt "llt source:\n\n$(append_file . main.py message.py utils.py web.py)\n\nGiven llt source, create an entry llt function that hooks into this standalone script so that we can append multiple files in a directory while in llt and add it to messages. Make sure you integrate the function into the main llt script."</cmd>
+***Welcome to llt, the little language terminal***
+Enter file path (default is llt/append_file_plugin.ll): Enter file path (default is ../scripts/append_file.py): 
+Hello luciano! You are using ll file llt/append_file_plugin.ll, with model gpt-4-turbo set to temperature 0.9. Type 'help' for available commands.
+llt> p
+To integrate functionality that allows appending multiple files within a directory into the `llt` application, you first need to write a function that can read all files in a specified directory and then append their contents to the list of messages. This function can be part of the `utils` module or could even be a standalone entry within the main application, depending on where it fits best in your existing architecture.
+
+Here's how to write and integrate this function:
+
+1. **Define the Function**: This function will read all files in a given directory and create messages from their contents. You can decide whether to attach metadata like file names as part of the message content or as separate fields.
+
+2. **Integrate with Command Line Parsing**: Modify the argument parser to include options for specifying a directory from which to load files.
+
+3. **Add to Command Map**: Ensure this functionality is accessible through the command interface of llt.
+
+### Step 1: Define the function in `utils.py`
+
+Add the following function to your `utils.py` module:
+
+```python
+def append_files_from_directory(messages: List[Dict[str, any]], args: Dict) -> List[Dict[str, any]]:
+    import os
+    directory = args.dir_path
+    for file_name in os.listdir(directory):
+        file_path = os.path.join(directory, file_name)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                content = file.read()
+            messages.append({'role': args.role, 'content': content, 'file': file_name})
+    return messages
+```
+
+### Step 2: Integrate with argparse in the main script
+
+Modify the argument parsing in your main script to include an option for specifying a directory from which to load and append content:
+
+```python
+parser.add_argument('--dir', '-d', type=str, help="Directory from which to append all file contents to messages.", default="")
+```
+
+### Step 3: Add to Command Map 
+
+In your `main.py`, ensure that this new utility function is hooked into the system's command map or through specific argument checks:
+
+```python
+def main():
+    args = parse_arguments()
+    init_directories(args)
+    messages = list()
+
+    startup_functions = {
+        # existing mappings
+        ArgKey.DETACH: detach_message,
+        # other mappings
+        'dir': append_files_from_directory,
+        # continue with other mappings
+    }
+    
+    for arg_key, func in startup_functions.items():
+        if getattr(args, arg_key.name.lower(), None):
+            messages = func(messages, args)
+
+    # Rest of your main logic here
+
+if __name__ == "__main__":
+    main()
+```
+
+### Running the Command
+
+You can now run the llt script with the `--dir` option to load all files from a given directory.
+
+```bash
+python main.py --dir "/path/to/directory"
+```
+
+This new feature should allow you to easily append content from multiple files within a specified directory into your llt messages, thus enabling batch processing or bulk message handling in your application. Adjust access permissions and error handling as needed based on your application's requirements.
+llt> Enter file path (default is llt/append_file_plugin.ll): 
+llt> q
+<cmd>llt --ll llt/llt.ll --dir ~/llt</cmd>
+***Welcome to llt, the little language terminal***
+Enter file path (default is llt/llt.ll): Enter file path (default is llt/llt.ll): 
+Hello luciano! You are using ll file llt/llt.ll, with model gpt-4-turbo set to temperature 0.9. Type 'help' for available commands.
+llt> dir
+llt> view
+Enter index of message to view (default is -1): 
+[User]
+api.py editor.py main.py message.py utils.py and web.py in ~/llt (6 files) added to previous message.
+[/User]
+llt> w
+Enter file path (default is llt/llt.ll):
+llt> q
