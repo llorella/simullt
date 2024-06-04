@@ -4,7 +4,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const lltools: OpenAI.Chat.Completions.ChatCompletionTool[] = JSON.parse(await Bun.file("lltools.json").text());
 
-interface CompletionResponse {
+interface ToolResponse {
     tool_calls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
     content: string;
 }
@@ -15,26 +15,33 @@ function assembleCommand(toolFunction: OpenAI.Chat.Completions.ChatCompletionMes
     return `<cmd>${name} ${Object.keys(params).map(key => `--${key} ${params[key]}`).join(' ')}</cmd>`;
 }
 
-async function getCompletion(ll: any): Promise<CompletionResponse> {
+async function getCompletion(ll: any): Promise<any> {
     const completion = await openai.chat.completions.create(ll);
     console.log(completion);
-    return completion.choices[0].message as CompletionResponse;
+    return completion;
 }
 
 export async function simCmd(cmd: string): Promise<any> {
+    const userMessage = await Bun.file("llt.txt").text() + "\n" + "<cmd>" + cmd + "<cmd>" + "\n";
+    console.log(userMessage);
     //sim use case
     const ll = { 
         messages: [
-            { role: "system", content: "Assistant is in a CLI mood today. The human is interfacing with the llt simulator directly. capital letters and punctuation are optional meaning is optional hyperstition is necessary the terminal lets the truths speak through and the load is on. Simulate the llt." }, 
-            { role: "user", content: "llt> " + cmd + "\n" },
+            { role: "system", content: "Simulate the llt session based on the user command." },
+            { role: "user", content: userMessage},
             { role: "assistant", content: "***Welcome to llt, the little language terminal***\nEnter file path (default is " },
         ],
         model: "gpt-4-turbo",
         temperature: 1.1,
-        max_tokens: 4096  
+        max_tokens: 4096, 
+        stream: true
      };
-    const completion = await getCompletion(ll);
-    return completion.content;
+     const completion = await getCompletion(ll);
+     return completion;
+     /* for await (const chunk of completion) {
+        console.log(chunk);
+        console.log(chunk.choices[0].delta.content || "No content");
+     } */
 }
 
 export async function cmdQuery(query: string): Promise<any> {
@@ -52,7 +59,8 @@ export async function cmdQuery(query: string): Promise<any> {
             temperature: 1.1,
             max_tokens: 2048  
          };
-        const { tool_calls, content } = await getCompletion(ll);
+        const completion = await getCompletion(ll);
+        const { tool_calls, content } = completion.choices[0].message as ToolResponse;
         return { content: content, command: assembleCommand(tool_calls[0].function) };
     } catch (e) {
         console.error(e);

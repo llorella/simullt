@@ -66,13 +66,28 @@ main {
   border-color: var(--input-focus-border-color);
 }
 
-#simulatorOutput, #commandOutput {
+#commandOutput {
   background-color: var(--input-bg-color);
   color: var(--text-color);
   padding: 10px;
   border-radius: var(--terminal-border-radius);
   width: 100%; /* Full width to match input */
   margin-top: 10px; /* Space from input */
+}
+
+#simulatorOutput {
+  background-color: var(--input-bg-color);
+  color: var(--text-color);
+  padding: 10px 20px;
+  border-radius: var(--terminal-border-radius);
+  width: 100%; /* Full width to match input */
+  margin-top: 10px; /* Space from input */
+  overflow-y: auto; /* Makes it scrollable */
+  max-height: 300px; /* Maximum height before scrolling */
+  font-family: 'Courier New', monospace; /* Monospace font for terminal-like appearance */
+  white-space: pre-wrap; /* Maintains formatting and spacing */
+  word-wrap: break-word; /* Ensures long words do not overflow */
+  border: 1px solid var(--input-focus-border-color); /* Adds a subtle border */
 }
 
 button {

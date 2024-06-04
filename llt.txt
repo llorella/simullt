@@ -213,9 +213,10 @@ if __name__ == "__main__":
 # llt works really well with one off scripts. if you have a one off script, you can easily create an entry function that takes in a list of messages and returns a list of messages.
 # this is all you need to do to get a script to work with llt.
 # so, we want to automate this process. give an ai a script, and interop with llt.
-<cmd>llt--ll llt/web_improve.ll--file /tmp/llt --prompt 'Grok what web.py is doing, and how it serves a purpose in llt as it encapsulates functionality for interacting with web pages, and attaching results to the messages list, so that it may be used in the next iteration of main loop. Right now, it works, but its scope is limited and only works for paragraph or code block tags. Make it generic, so that it can generalize to different wanted content of web page.'</cmd>
+<cmd>llt --ll llt/web_improve.ll --file /tmp/llt --prompt 'Grok what web.py is doing, and how it serves a purpose in llt as it encapsulates functionality for interacting with web pages, and attaching results to the messages list, so that it may be used in the next iteration of main loop. Right now, it works, but its scope is limited and only works for paragraph or code block tags. Make it generic, so that it can generalize to different wanted content of web page.'</cmd>
 ***Welcome to llt, the little language terminal***
-Enter file path (default is llt/web_improve.ll): Enter file path (default is /tmp/llt):
+Enter file path (default is llt/web_improve.ll): 
+Enter file path (default is /tmp/llt):
 Hello luciano! You are using ll file llt/web_improve.ll, with model gpt-4-turbo set to temperature 0.9. Type 'help' for available commands.
 llt> p
 The `web.py` module in the `llt` (little language terminal) system provides functionality for fetching and processing content from web pages. As described, it currently extracts only specific tags (`<pre>` or `<p>`), which limits its utility. To enhance this module and make it more versatile, we can expand its capabilities to handle a broader range of HTML tags and attributes. This way, it can fetch and process various elements from web pages according to user-defined criteria.

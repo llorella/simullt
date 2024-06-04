@@ -25,24 +25,9 @@ async function serveStatic(filePath: string): Promise<Response> {
       headers: {
         'Content-Type': contentType      },
     }); 
-    //return new Response(Bun.file(`public/${filePath}`));
   } catch (e) {
     console.error(`Error serving ${filePath}:`);
     return new Response("Not Found", { status: 404 });
-  }
-}
-
-/* async function serveTemplate(name: string, context: Record<string, any>): Promise<Response> {
-  try {
-    const html = renderTemplate(await Bun.file(`./templates/${name}.html`).text(), context);
-    return new Response(html, {
-      headers: {
-        'Content-Type': 'text/html'
-      },
-    });
-  } catch (e: any) {
-    console.error(`Error rendering html template ${name}:`, e.message);
-    return new Response(e.message, { status: 500 });
   }
 }
 
@@ -71,7 +56,6 @@ async function logcmd(ll: any) {
 }
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
-  //'/': async () => serveStatic('index.html'), 
    '/ll': async (req) => {
     if (req.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
@@ -91,22 +75,39 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       return new Response(e.message, { status: 500 });
     }
   },
-  '/sim': async (req) => {
-    const formData = await req.formData();
-    const command = formData.get('command');
-    console.log(command);
-    const feedback = formData.get('feedback');
-    console.log(feedback);
-    await logcmd({ command: command, feedback: feedback }); 
-    if (feedback === 'run') {
-      //const simOutput = await simCmd(command as string);
-      return new Response("Simulator coming soon.", { status: 200 });
-    } else if (feedback === 'reject') {
+  '/simullt': async (req) => {
+    const command = await req.blob().then(data => data.text());
+    await logcmd({ command: command, feedback: 'run' }); 
+      const headers = new Headers({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      const stream = new ReadableStream({
+        start(controller) {
+          const encoder = new TextEncoder();
+          const sendEvent = async () => {
+            try {
+              const completion = await simCmd(command);
+              for await (const chunk of completion) {
+                const data = JSON.stringify(chunk);
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              }
+            } catch (error: any) {
+              controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify(error.message)}\n\n`));
+            }
+          };
+          sendEvent().then(() => controller.close());
+        }
+      });
+      return new Response(stream, { headers });
+    },
+    '/reject': async (req) => {
+      const formData = await req.formData();
+      const command = formData.get('command');
+      await logcmd({ command: command, feedback: 'reject' }); 
       return new Response("Thank you for your feedback. Your input will be reviewed and used for improving the teleprompter.", { status: 200 });
     }
-    else {
-      return new Response("Error", { status: 400 });
-  }}
 };
 
 serve({
