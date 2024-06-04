@@ -16,20 +16,23 @@ async function serveStatic(filePath: string): Promise<Response> {
     if (filePath.includes('..') || filePath.includes('%')) {
       return new Response('Bad Request', { status: 400 });
     }
+    if (filePath.endsWith("/")) {filePath+="index.html"}
     const contentType = MIME_TYPES[filePath.slice(filePath.lastIndexOf('.'))] || 'application/octet-stream';
-    const content = Bun.file(`./public/${filePath}`); 
+    console.log("contentType: ", contentType);
+    const content = Bun.file(`public/${filePath}`); 
+    console.log("content.type: ", content.type);
     return new Response(content, {
       headers: {
-        'Content-Type': contentType
-      },
-    });
+        'Content-Type': contentType      },
+    }); 
+    //return new Response(Bun.file(`public/${filePath}`));
   } catch (e) {
     console.error(`Error serving ${filePath}:`);
     return new Response("Not Found", { status: 404 });
   }
 }
 
-async function serveTemplate(name: string, context: Record<string, any>): Promise<Response> {
+/* async function serveTemplate(name: string, context: Record<string, any>): Promise<Response> {
   try {
     const html = renderTemplate(await Bun.file(`./templates/${name}.html`).text(), context);
     return new Response(html, {
@@ -49,7 +52,7 @@ function renderTemplate(templateContent: string, context: Record<string, any> = 
     const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
     return content.replace(regex, escapedValue);
   }, templateContent);
-}
+} */
 
 function getCurrentYear(): string {
   return new Date().getFullYear().toString();
@@ -68,11 +71,8 @@ async function logcmd(ll: any) {
 }
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
-  '/': async () => serveTemplate('index', { 
-    heading: "teleprompter", 
-    year: getCurrentYear() 
-  }),
-  '/ll': async (req) => {
+  //'/': async () => serveStatic('index.html'), 
+   '/ll': async (req) => {
     if (req.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -113,10 +113,15 @@ serve({
   port: 3000,
   fetch(req: Request) {
     const url = new URL(req.url);
+    console.log("url pathname: ", url.pathname);
     const handler = routes[url.pathname];
+    console.log("handler: ", handler);
     if (handler) {
+      console.log(handler);
       return handler(req);
+
     } else {
+      console.log("no handler");
       return serveStatic(url.pathname);
     }
   },
